@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebGIS Sleman</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        html,
+        body,
+        #map {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        .coord-box {
+            background: #fff;
+            padding: 4px 10px;
+            font-size: 12px;
+            border-radius: 4px;
+            box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .search-wrap {
+            position: relative;
+            background: #fff;
+            border-radius: 4px;
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.65);
+        }
+
+        .search-btn {
+            display: block;
+            width: 34px;
+            height: 34px;
+            cursor: pointer;
+        }
+
+        .search-btn svg {
+            width: 20px;
+            height: 20px;
+            margin: 7px;
+        }
+
+        .search-panel {
+            display: none;
+            position: absolute;
+            top: 0;
+            right: 40px;
+            background: #fff;
+            padding: 4px;
+            border-radius: 4px;
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.65);
+            white-space: nowrap;
+        }
+
+        .search-panel.aktif {
+            display: block;
+        }
+
+        .search-panel input {
+            width: 180px;
+            padding: 5px 8px;
+            font-size: 13px;
+            border: 1px solid #aaa;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        .popup-tabel {
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .popup-tabel td {
+            padding: 2px 6px;
+            border-bottom: 1px solid #ddd;
+            vertical-align: top;
+        }
+
+        .popup-tabel td:first-child {
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .legenda-box {
+            background: #fff;
+            padding: 6px 9px;
+            border-radius: 4px;
+            box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+            font-size: 11px;
+            max-width: 240px;
+        }
+
+        .legenda-box summary {
+            font-weight: bold;
+            font-size: 12px;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .legenda-isi {
+            max-height: 220px;
+            overflow-y: auto;
+            margin-top: 4px;
+        }
+
+        .legenda-isi .judul {
+            font-weight: bold;
+            margin: 6px 0 2px;
+        }
+
+        .legenda-isi img {
+            display: block;
+            max-width: 100%;
+        }
+
+        .legenda-isi .baris {
+            display: flex;
+            align-items: center;
+            margin: 3px 0;
+        }
+
+        .sw {
+            flex: 0 0 auto;
+            width: 22px;
+            margin-right: 6px;
+        }
+
+        .sw-garis {
+            height: 0;
+            border-top: 3px solid;
+        }
+
+        .sw-jalan1 { border-top-color: #8b1a1a; } /* Arteri */
+        .sw-jalan2 { border-top-color: #ee5d4d; } /* Kolektor */
+        .sw-jalan3 { border-top-color: #f4b49a; } /* Lokal */
+        .sw-jalan4 { border-top-color: #f7d9d9; } /* Lingkungan */
+
+        .sw-titik {
+            width: 8px;
+            height: 8px;
+            background: #ff0000;
+            margin: 0 13px 0 7px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="lib/L.Geoserver.js"></script>
+
+    <script>
+        var geoserverUrl = "http://localhost:8080/geoserver";
+        var layerDesa = "PGWEBB:batas_administrasi_desa_sleman_benar";
+        var layerJalan = "PGWEBB:jalan_sleman_ln";
+        var layerToponimi = "PGWEBB:TOPONIMI_PT_25K";
+        var layerWarisan = "PGWEBB:warisan_budaya";
+
+        var map = L.map("map").setView([-7.72, 110.35], 11);
+
+        var osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        var satelit = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+            maxZoom: 19,
+            attribution: "Tiles &copy; Esri"
+        });
+
+        var wmsBatas = L.Geoserver.wms(geoserverUrl + "/wms", {
+            layers: layerDesa,
+            transparent: true
+        }).addTo(map);
+
+        var wmsJalan = L.Geoserver.wms(geoserverUrl + "/wms", {
+            layers: layerJalan,
+            transparent: true
+        }).addTo(map);
+
+        var wmsToponimi = L.Geoserver.wms(geoserverUrl + "/wms", {
+            layers: layerToponimi,
+            transparent: true
+        }).addTo(map);
+
+        var wmsWarisan = L.Geoserver.wms(geoserverUrl + "/wms", {
+            layers: layerWarisan,
+            transparent: true
+        }).addTo(map);
+
+        L.control.layers(
+            { "OpenStreetMap": osm, "Citra Satelit": satelit },
+            {
+                "Batas Administrasi Desa": wmsBatas,
+                "Jalan": wmsJalan,
+                "Toponimi": wmsToponimi,
+                "Warisan Budaya Takbenda": wmsWarisan
+            }
+        ).addTo(map);
+
+        map.on("click", function (e) {
+            if (!map.hasLayer(wmsWarisan)) return;
+
+            var size = map.getSize();
+            var b = map.getBounds();
+            var sw = map.options.crs.project(b.getSouthWest());
+            var ne = map.options.crs.project(b.getNorthEast());
+            var titik = map.latLngToContainerPoint(e.latlng);
+
+            var url = geoserverUrl + "/wms?service=WMS&version=1.1.1&request=GetFeatureInfo" +
+                "&layers=" + layerWarisan +
+                "&query_layers=" + layerWarisan +
+                "&srs=EPSG:3857" +
+                "&bbox=" + [sw.x, sw.y, ne.x, ne.y].join(",") +
+                "&width=" + size.x + "&height=" + size.y +
+                "&x=" + Math.round(titik.x) + "&y=" + Math.round(titik.y) +
+                "&buffer=10&feature_count=1" +
+                "&info_format=application/json";
+
+            fetch(url)
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (!data.features || data.features.length === 0) return;
+                    var p = data.features[0].properties;
+                    var isi = '<table class="popup-tabel">';
+                    for (var k in p) {
+                        isi += "<tr><td>" + k + "</td><td>" + p[k] + "</td></tr>";
+                    }
+                    isi += "</table>";
+                    L.popup().setLatLng(e.latlng).setContent(isi).openOn(map);
+                })
+                .catch(function () {
+                    console.log("GetFeatureInfo gagal. Cek GeoServer atau pengaturan CORS.");
+                });
+        });
+
+        var hasilCari = null;
+
+        var SearchControl = L.Control.extend({
+            options: { position: "topright" },
+            onAdd: function () {
+                var wrap = L.DomUtil.create("div", "search-wrap");
+                wrap.innerHTML =
+                    '<a class="search-btn" title="Cari desa">' +
+                    '<svg viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.5" stroke-linecap="round">' +
+                    '<circle cx="10" cy="10" r="6"/><line x1="15" y1="15" x2="21" y2="21"/></svg></a>' +
+                    '<div class="search-panel"><input type="text" placeholder="Cari nama desa..."></div>';
+
+                var btn = wrap.querySelector(".search-btn");
+                var panel = wrap.querySelector(".search-panel");
+                var input = wrap.querySelector("input");
+
+                L.DomEvent.disableClickPropagation(wrap);
+                L.DomEvent.on(btn, "click", function () {
+                    panel.classList.toggle("aktif");
+                    if (panel.classList.contains("aktif")) input.focus();
+                });
+                L.DomEvent.on(input, "keydown", function (e) {
+                    if (e.key === "Enter") cariDesa(input.value.trim());
+                });
+                return wrap;
+            }
+        });
+        new SearchControl().addTo(map);
+
+        function cariDesa(teks) {
+            if (!teks) return;
+            var filter = "namobj ILIKE '%" + teks.replace(/'/g, "''") + "%'";
+            var url = geoserverUrl + "/wfs?service=WFS&version=1.0.0&request=GetFeature" +
+                "&typeName=" + layerDesa +
+                "&outputFormat=application/json&srsName=EPSG:4326" +
+                "&CQL_FILTER=" + encodeURIComponent(filter);
+
+            fetch(url)
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (hasilCari) map.removeLayer(hasilCari);
+                    if (!data.features || data.features.length === 0) {
+                        alert("Desa \"" + teks + "\" tidak ditemukan.");
+                        return;
+                    }
+                    hasilCari = L.geoJSON(data, {
+                        style: { color: "#ff0000", weight: 3, fillOpacity: 0.1 },
+                        onEachFeature: function (f, l) {
+                            l.bindPopup("<b>" + f.properties.namobj + "</b>");
+                        }
+                    }).addTo(map);
+                    map.fitBounds(hasilCari.getBounds());
+                })
+                .catch(function () {
+                    alert("Pencarian gagal. Cek GeoServer atau pengaturan CORS.");
+                });
+        }
+
+        function urlLegenda(layer) {
+            return geoserverUrl + "/wms?service=WMS&version=1.1.1&request=GetLegendGraphic" +
+                "&format=image/png&width=14&height=14&layer=" + layer +
+                "&legend_options=" + encodeURIComponent("fontSize:10;fontAntiAliasing:true");
+        }
+
+        var legendaCtrl = L.control({ position: "bottomleft" });
+        legendaCtrl.onAdd = function () {
+            var div = L.DomUtil.create("details", "legenda-box");
+            div.open = true;
+            div.innerHTML =
+                "<summary>Legenda</summary>" +
+                '<div class="legenda-isi">' +
+
+                '<div class="judul">Batas Administrasi Desa</div>' +
+                '<img src="' + urlLegenda(layerDesa) + '">' +
+
+                '<div class="judul">Jalan</div>' +
+                '<div class="baris"><div class="sw sw-garis sw-jalan1"></div><span>Jalan Arteri</span></div>' +
+                '<div class="baris"><div class="sw sw-garis sw-jalan2"></div><span>Jalan Kolektor</span></div>' +
+                '<div class="baris"><div class="sw sw-garis sw-jalan3"></div><span>Jalan Lokal</span></div>' +
+                '<div class="baris"><div class="sw sw-garis sw-jalan4"></div><span>Jalan Lingkungan</span></div>' +
+
+                '<div class="judul">Warisan Budaya Takbenda</div>' +
+                '<div class="baris"><div class="sw-titik"></div><span>Titik warisan budaya</span></div>' +
+
+                "</div>";
+            L.DomEvent.disableClickPropagation(div);
+            L.DomEvent.disableScrollPropagation(div);
+            return div;
+        };
+        legendaCtrl.addTo(map);
+
+        L.control.scale({ position: "bottomleft", imperial: false }).addTo(map);
+
+        var coordCtrl = L.control({ position: "bottomright" });
+        coordCtrl.onAdd = function () {
+            this._div = L.DomUtil.create("div", "coord-box");
+            this._div.innerHTML = "Lat: -, Lng: -";
+            return this._div;
+        };
+        coordCtrl.addTo(map);
+
+        map.on("mousemove", function (e) {
+            coordCtrl._div.innerHTML =
+                "Lat: " + e.latlng.lat.toFixed(5) + ", Lng: " + e.latlng.lng.toFixed(5);
+        });
+    </script>
+</body>
+
+</html>
